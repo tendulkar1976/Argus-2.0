@@ -1,12 +1,13 @@
 import React, {useState} from 'react';
 import {Shield, SquareTerminal, Activity, Cpu, GitCompare, BarChart3, History} from 'lucide-react';
 import {WorkspacePage} from '@/pages/WorkspacePage';
+import {CloudPage} from '@/pages/CloudPage';
 import {ModelsPage} from '@/pages/ModelsPage';
 import {HomePage} from '@/pages/HomePage';
 import {useHealth} from '@/hooks/useHealth';
 import {useOllamaStatus} from '@/hooks/useOllamaStatus';
-type Tab='workspace'|'benchmark'|'analytics'|'history'|'models'|'system';
-const nav=[{id:'workspace',label:'Workspace',Icon:SquareTerminal},{id:'benchmark',label:'Benchmark',Icon:GitCompare},{id:'analytics',label:'Analytics',Icon:BarChart3},{id:'history',label:'History',Icon:History},{id:'models',label:'Model Gateway',Icon:Cpu},{id:'system',label:'System Status',Icon:Activity}] as const;
+type Tab='cloud'|'workspace'|'benchmark'|'analytics'|'history'|'models'|'system';
+const nav=[{id:'cloud',label:'Cloud Studio',Icon:Cpu},{id:'workspace',label:'Workspace',Icon:SquareTerminal},{id:'benchmark',label:'Benchmark',Icon:GitCompare},{id:'analytics',label:'Analytics',Icon:BarChart3},{id:'history',label:'History',Icon:History},{id:'models',label:'Model Gateway',Icon:Cpu},{id:'system',label:'System Status',Icon:Activity}] as const;
 export const App:React.FC=()=>{
  const [tab,setTab]=useState<Tab>('workspace');
  const {health,error,refetch}=useHealth(true);
@@ -19,6 +20,6 @@ export const App:React.FC=()=>{
  <p className="studio-nav-label">WORKSPACE</p><nav aria-label="Main navigation" className="studio-nav">{nav.map(({id,label,Icon})=><button key={id} aria-current={tab===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
  <div className="studio-sidebar-bottom"><Cpu size={16}/><div><strong>Inference: {ready?'Ready':status?'Offline':'Checking'}</strong><small>{ready?status?.model:'Ollama runtime'}</small></div></div><p className="studio-tagline">Understand. Optimize. Execute.</p></aside>
  <div className="studio-main"><header className="studio-topbar"><span>Studio / {nav.find(n=>n.id===tab)?.label}</span><span className="studio-health" role="status"><i data-online={online}/>API {online?'Online':error?'Offline':'Checking'}</span></header>
- <main id="main-content"><div hidden={tab==='models'||tab==='system'}><WorkspacePage ollamaStatus={status} view={tab==='models'||tab==='system'?'workspace':tab} onOpenOptimizer={()=>navigate('workspace')}/></div>{tab==='models'&&<ModelsPage/>}{tab==='system'&&<HomePage onRefreshStatus={()=>{void refetch();void checkStatus();}}/>}</main></div></div>;
+ <main id="main-content"><div hidden={tab==='cloud'||tab==='models'||tab==='system'}><WorkspacePage ollamaStatus={status} view={tab==='cloud'||tab==='models'||tab==='system'?'workspace':tab} onOpenOptimizer={()=>navigate('workspace')}/></div>{tab==='cloud'&&<CloudPage/>}{tab==='models'&&<ModelsPage/>}{tab==='system'&&<HomePage onRefreshStatus={()=>{void refetch();void checkStatus();}}/>}</main></div></div>;
 };
 export default App;

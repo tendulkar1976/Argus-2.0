@@ -1,0 +1,3 @@
+# NVIDIA cloud studio
+
+Set NVIDIA_API_KEY and a unique, strong ARGUS_ACCESS_TOKEN in the Render service environment. Never commit either secret. Open Cloud Studio, enter the Argus access token (not the NVIDIA key), discover models, select a chat-capable model and submit a prompt. Benchmark runs two additional calls. Token usage is reported only if returned by the provider. The constraint check is heuristic, not a quality guarantee. Limits are per process: four requests per minute and one concurrent inference operation. No shared public inference without an access token. Local Ollama features remain separate.
