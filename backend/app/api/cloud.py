@@ -3,6 +3,7 @@ import os
 import time
 import asyncio
 import hmac
+import re
 from collections import deque
 from typing import Literal
 import httpx
@@ -38,6 +39,7 @@ class CloudRequest(BaseModel):
     model: str = Field(min_length=1, max_length=200)
     mode: Literal["balanced", "concise", "structure"] = "balanced"
     benchmark: bool = False
+    output_limit: int = Field(default=4096, ge=256, le=8192)
 
 def headers():
     return {"Authorization": "Bearer " + os.environ["NVIDIA_API_KEY"]}
@@ -47,6 +49,8 @@ async def upstream(client, method, path, **kwargs):
         response = await client.request(method, BASE + path, headers=headers(), **kwargs)
         if response.status_code == 429:
             raise HTTPException(429, "NVIDIA rate limit reached.")
+        if response.status_code == 404:
+            raise HTTPException(502, "Selected NVIDIA model or endpoint is unavailable for inference. Choose another model.")
         if response.status_code >= 400:
             raise HTTPException(502, f"NVIDIA request failed (HTTP {response.status_code}).")
         return response.json()
@@ -96,9 +100,14 @@ async def optimize(req: CloudRequest):
         if req.model not in await catalog(client):
             raise HTTPException(422, "Select a model from the current NVIDIA catalog.")
         analysis = TaskAnalyzer.analyze(original)
-        instruction = PromptRewriter.build_system_instruction(analysis, "compress", req.mode)
-        rewrite = await generate(client, req.model, [{"role":"system","content":instruction},{"role":"user","content":original}], 2048)
-        candidate = OllamaService.clean_optimized_output(rewrite["text"], original)
+        # Conservative prefix-only edits; never rewrite embedded code or quoted text.
+        started = time.monotonic()
+        candidate = original
+        if not any(marker in original for marker in ('```', '\n', '"', "'")):
+            candidate = re.sub(r"^(?:I would like you to (?:please )?|Could you please |Can you please |Please )(?=[A-Za-z])", "", original, count=1, flags=re.I)
+            candidate = candidate[:1].upper() + candidate[1:]
+        rewrite = {"usage":{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0},
+                   "latency_ms":round((time.monotonic()-started)*1000),"finish_reason":"stop"}
         validation = CandidateValidator.validate(original, candidate, analysis)
         before = OllamaService.estimate_tokens(original).estimated_tokens
         after = OllamaService.estimate_tokens(candidate).estimated_tokens
@@ -108,13 +117,13 @@ async def optimize(req: CloudRequest):
             "validation":"heuristic_pass" if accepted else "original_preserved",
             "validation_reason":None if accepted else (validation.reason or "No verified reduction or incomplete rewrite."),
             "estimated_original_tokens":before,"estimated_optimized_tokens":after if accepted else before,
-            "optimizer_usage":rewrite["usage"],"optimizer_latency_ms":rewrite["latency_ms"],"benchmark":None}
+            "route":"local_rules" if accepted else "bypass","optimizer_usage":rewrite["usage"],"optimizer_latency_ms":rewrite["latency_ms"],"benchmark":None}
         if req.benchmark:
-            a = await generate(client, req.model, [{"role":"user","content":original}], 1024)
-            b = await generate(client, req.model, [{"role":"user","content":optimized}], 1024)
+            a = await generate(client, req.model, [{"role":"user","content":original}], req.output_limit)
+            b = await generate(client, req.model, [{"role":"user","content":optimized}], req.output_limit)
             x,y = a["usage"]["total_tokens"],b["usage"]["total_tokens"]
             overhead = rewrite["usage"]["total_tokens"]
             result["benchmark"]={"original":a,"optimized":b,"gross_tokens_saved":x-y if x is not None and y is not None else None,
                 "net_tokens_saved":x-y-overhead if x is not None and y is not None and overhead is not None else None,
-                "quality_assessment":"Not evaluated; inspect both responses."}
+                "quality_assessment":"Incomplete benchmark: at least one response did not finish normally." if a["finish_reason"] != "stop" or b["finish_reason"] != "stop" else "Responses completed; semantic quality not evaluated."}
         return result
