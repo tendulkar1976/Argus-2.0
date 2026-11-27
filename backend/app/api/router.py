@@ -23,3 +23,6 @@ api_router.include_router(comparison_router)
 
 # Include agent trajectory reduction router (Phase 6)
 api_router.include_router(trajectory_router)
+
+from app.api.cloud import router as cloud_router
+api_router.include_router(cloud_router)
