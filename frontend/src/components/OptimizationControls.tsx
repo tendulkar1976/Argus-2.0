@@ -42,8 +42,6 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
   requestedModel = '',
   onRequestedModelChange,
   discoveredModels = [],
-  downstreamModel = '',
-  onDownstreamModelChange,
   trials = 1,
   onTrialsChange,
   onCompare,
@@ -52,28 +50,24 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
 }) => {
   const isOllamaReady = Boolean(ollamaStatus?.connected && ollamaStatus?.model_installed);
 
-  const modes: { id: OptimizationMode; title: string; desc: string }[] = [
+  const modes: { id: OptimizationMode; title: string }[] = [
     {
       id: 'balanced',
       title: 'Balanced',
-      desc: 'Moderate compression, removes verbosity while maintaining prose flow (~25% target)',
     },
     {
       id: 'concise',
       title: 'Concise',
-      desc: 'Aggressive compression, imperative directives, minimal conversational fluff (~40% target)',
     },
     {
       id: 'structure',
       title: 'Structure-focused',
-      desc: 'Groups constraints into markdown headers and schema blocks for maximum parser clarity (~30% target)',
     },
   ];
 
   return (
     <Card
       title="Optimization Controls"
-      subtitle="Configure compression profile and target frontier model"
       className="space-y-5"
     >
       {/* Local LLM Inference Engine Status Banner */}
@@ -84,9 +78,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
             <span className="font-semibold text-cyan-300">
               Local LLM Active ({ollamaStatus?.model || ''})
             </span>
-            <p className="text-[11px] text-cyan-200/80 leading-relaxed">
-              Connected to local Ollama runtime. Real-time prompt optimization runs on the configured Ollama server.
-            </p>
+
           </div>
         </div>
       ) : (
@@ -94,10 +86,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
           <div className="space-y-0.5">
             <span className="font-semibold text-amber-300">Local Model Offline</span>
-            <p className="text-[11px] text-amber-200/80 leading-relaxed">
-              {ollamaStatus?.error ||
-                "Cannot connect to Ollama at http://127.0.0.1:11434. Ensure 'ollama serve' is active and 'qwen2.5:1.5b' is downloaded."}
-            </p>
+            <p className="text-[11px]">Connect Ollama or use Cloud Studio.</p>
           </div>
         </div>
       )}
@@ -108,7 +97,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
             <Route className="w-3.5 h-3.5 text-cyan-400" />
-            Optimizer Model Routing (Phase 5)
+            Model routing
           </label>
           {onEnableRoutingChange && (
             <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-mono text-cyan-300">
@@ -123,11 +112,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           )}
         </div>
 
-        {enableRouting ? (
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Automatic router dynamically selects between fast compact (<code className="text-cyan-300">qwen2.5:1.5b</code>) and strong reasoning (<code className="text-cyan-300">qwen2.5:7b</code>) local models based on rule complexity and live GPU VRAM.
-          </p>
-        ) : (
+        {!enableRouting && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
               <span>Manual Local Model Override:</span>
@@ -185,7 +170,6 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                   <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
                     {m.title}
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-snug">{m.desc}</p>
                 </div>
               </label>
             ))}
@@ -195,15 +179,13 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
         {/* Target Model, Downstream Model & Actions */}
         <div className="flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            {/* Target Model (Illustrative) */}
+            {/* Target model (estimate) */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label htmlFor="target-model-select" className="text-xs font-semibold text-slate-200">
                   Target Model (Illustrative)
                 </label>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 bg-[#080d19] px-1.5 py-0.5 rounded border border-white/5">
-                  Model Profile
-                </span>
+
               </div>
 
               <select
@@ -220,46 +202,9 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
               </select>
             </div>
 
-            {/* Downstream Model (Pinned for Output Comparison) */}
-            <div className="space-y-1 pt-1 border-t border-white/5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="downstream-model-select" className="text-xs font-semibold text-cyan-300 flex items-center gap-1">
-                  <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                  Downstream LLM (Pinned)
-                </label>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 bg-cyan-950/50 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                  Dual Execution
-                </span>
-              </div>
-
-              <select
-                id="downstream-model-select"
-                value={downstreamModel || (ollamaStatus?.model || '')}
-                onChange={(e) => onDownstreamModelChange && onDownstreamModelChange(e.target.value)}
-                className="w-full p-2 rounded-lg bg-[#080d19] border border-cyan-500/30 text-cyan-100 text-xs font-mono focus:outline-none focus:border-cyan-400"
-              >
-                {discoveredModels.length > 0 ? (
-                  discoveredModels.map((m) => (
-                    <option key={m.name} value={m.name}>
-                      {m.name} ({m.parameter_size || m.tier}) {m.is_loaded ? '• [VRAM loaded]' : ''}
-                    </option>
-                  ))
-                ) : (
-                  (ollamaStatus?.available_models || []).map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))
-                )}
-              </select>
-              <p className="text-[10px] text-slate-400 leading-tight">
-                Both original & optimized prompts will be evaluated against this exact model.
-              </p>
-            </div>
-
             {/* Finding 1: Measurement Trials Selector */}
             <div className="flex items-center justify-between text-xs pt-1 border-t border-white/5">
-              <span className="text-[11px] font-mono text-slate-300">Measurement Trials:</span>
+              <span className="text-[11px] font-mono text-slate-300">Trials:</span>
               <div className="flex items-center gap-1.5 font-mono text-[10px]">
                 <button
                   type="button"
@@ -270,7 +215,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                       : 'bg-[#080d19] text-slate-400 border-white/10 hover:text-slate-200'
                   }`}
                 >
-                  1 (Single)
+                  1
                 </button>
                 <button
                   type="button"
@@ -281,7 +226,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                       : 'bg-[#080d19] text-slate-400 border-white/10 hover:text-slate-200'
                   }`}
                 >
-                  3 (Paired alternating)
+                  3
                 </button>
               </div>
             </div>
@@ -290,7 +235,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           </div></div></details></fieldset>
           {/* Action Triggers: Compare Outputs and Optimize Prompt */}
           <div className="studio-actions">
-            {onCompare && (
+            {benchmarkFirst && onCompare && (
               <Button
                 variant={benchmarkFirst?'primary':'outline'}
                 size="lg"
@@ -300,7 +245,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                 isLoading={isComparing}
               >
                 <Bot className="w-4 h-4 text-navy-950" />
-                <span>{isComparing ? 'Running Output Comparison...' : 'Compare Downstream Outputs'}</span>
+                <span>{isComparing ? 'Running Output Comparison...' : 'Compare responses'}</span>
               </Button>
             )}
 
@@ -313,7 +258,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
               isLoading={isLoading}
             >
               <Zap className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{isLoading ? 'Optimizing Prompt...' : 'Optimize Prompt Only'}</span>
+              <span>{isLoading ? 'Optimizing Prompt...' : 'Optimize prompt'}</span>
             </Button>
 
             {disabled && !isLoading && !isComparing && (

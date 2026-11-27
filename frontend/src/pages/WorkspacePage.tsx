@@ -8,7 +8,6 @@ import { SessionInsights, type SessionRun } from '@/components/SessionInsights';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { apiService } from '@/services/api';
-import { EXAMPLE_PROMPTS } from '@/services/mockOptimizer';
 import {
   OptimizationMode,
   TargetModel,
@@ -206,8 +205,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus, view
           </div>
         </div>
         <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
-          Prepare, compress, and refine prompts using local neural inference before downstream execution.
-          Select an optimization profile, evaluate token reduction, and inspect side-by-side prompt diffs.
+          Optimize prompts and measure token savings.
         </p>
       </section>
 
@@ -396,22 +394,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus, view
             </div>
             <div className="space-y-1.5">
               <h3 className="text-sm font-semibold text-slate-200">
-                Prompt Optimization Workspace Ready
+                Ready to optimize
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Paste a prompt or select a sample above to optimize tokens with local neural inference.
+                Enter a prompt to begin.
               </p>
-            </div>
-            <div className="pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSelectExample(EXAMPLE_PROMPTS[0])}
-                className="text-xs"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Try Example: Code Review</span>
-              </Button>
             </div>
           </div>
         </Card>
