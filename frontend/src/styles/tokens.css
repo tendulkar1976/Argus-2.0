@@ -5,11 +5,11 @@
 
 :root {
   /* Surfaces */
-  --surface-base: #060a12;
+  --surface-base: #0c0e12;
   --surface-subtle: #0a101d;
   --surface-card: #0e1626;
-  --surface-panel: #131e34;
-  --surface-elevated: #1a2947;
+  --surface-panel: #1c2027;
+  --surface-elevated: #282e36;
   --surface-hover: #213459;
 
   /* Borders */
@@ -20,9 +20,9 @@
 
   /* Accents */
   --accent-cyan-subtle: rgba(6, 182, 212, 0.12);
-  --accent-cyan: #06b6d4;
-  --accent-cyan-bright: #22d3ee;
-  --accent-cyan-dark: #0891b2;
+  --accent-cyan: #55d9bc;
+  --accent-cyan-bright: #55d9bc;
+  --accent-cyan-dark: #279a80;
 
   /* Text */
   --text-primary: #f8fafc;
@@ -37,5 +37,5 @@
   --radius-xl: 1rem;
 
   /* Focus ring */
-  --focus-ring: 0 0 0 2px #060a12, 0 0 0 4px #06b6d4;
+  --focus-ring: 0 0 0 2px #0c0e12, 0 0 0 4px #55d9bc;
 }

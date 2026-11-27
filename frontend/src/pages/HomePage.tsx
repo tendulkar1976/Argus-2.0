@@ -11,7 +11,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-export const HomePage: React.FC = () => {
+export const HomePage: React.FC<{onRefreshStatus?: () => void}> = ({onRefreshStatus}) => {
   const { health, isLoading: isHealthLoading, error: healthError, refetch: refetchHealth } = useHealth(false);
   const { status: ollamaStatus, isLoading: isOllamaLoading, checkStatus: refetchOllama } = useOllamaStatus(true);
 
@@ -21,6 +21,7 @@ export const HomePage: React.FC = () => {
   const handleRefreshAll = () => {
     void refetchHealth();
     void refetchOllama();
+    onRefreshStatus?.();
   };
 
   return (

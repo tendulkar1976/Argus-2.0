@@ -1,5 +1,8 @@
 """Argus FastAPI Main Application Entrypoint."""
 
+import os
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from fastapi import FastAPI, Request, status
@@ -85,6 +88,10 @@ def create_app() -> FastAPI:
 
     # Include API Routers
     app.include_router(api_router, prefix=settings.API_PREFIX)
+
+    frontend_dir = os.getenv('ARGUS_FRONTEND_DIR')
+    if frontend_dir and Path(frontend_dir).is_dir():
+        app.mount('/', StaticFiles(directory=frontend_dir, html=True), name='studio')
 
     return app
 
