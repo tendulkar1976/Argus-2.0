@@ -1,51 +1,24 @@
-import React, { useState } from 'react';
-import { Header } from '@/components/Header';
-import { WorkspacePage } from '@/pages/WorkspacePage';
-import { HomePage } from '@/pages/HomePage';
-import { useHealth } from '@/hooks/useHealth';
-import { useOllamaStatus } from '@/hooks/useOllamaStatus';
-
-export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'workspace' | 'system'>('workspace');
-  const { health, error: healthError } = useHealth(true);
-  const { status: ollamaStatus } = useOllamaStatus(true);
-
-  const apiStatus = health?.status === 'ok' ? 'online' : healthError ? 'offline' : 'idle';
-  const isOllamaReady = Boolean(ollamaStatus?.connected && ollamaStatus?.model_installed);
-
-  return (
-    <div className="min-h-screen bg-[#060a12] text-slate-200 flex flex-col font-sans selection:bg-cyan-500/20 selection:text-cyan-300">
-      <Header
-        apiStatus={apiStatus}
-        ollamaStatus={ollamaStatus}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      <main className="flex-1">
-        {activeTab === 'workspace' ? (
-          <WorkspacePage ollamaStatus={ollamaStatus} />
-        ) : (
-          <HomePage />
-        )}
-      </main>
-      <footer className="border-t border-white/[0.06] bg-[#070c17] py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-300">Argus</span>
-            <span className="text-slate-600">&bull;</span>
-            <span className="text-slate-400">Understand. Optimize. Execute.</span>
-          </div>
-          <div className="flex items-center gap-4 font-mono text-[11px] text-slate-400">
-            <span>Prompt Optimization Middleware</span>
-            <span className="text-slate-600">&bull;</span>
-            <span className={isOllamaReady ? 'text-cyan-400' : 'text-slate-400'}>
-              Local LLM: {isOllamaReady ? `Active (${ollamaStatus?.model})` : 'Offline'}
-            </span>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+import React, {useState} from 'react';
+import {Shield, SquareTerminal, Activity, Cpu, GitCompare, BarChart3, History} from 'lucide-react';
+import {WorkspacePage} from '@/pages/WorkspacePage';
+import {ModelsPage} from '@/pages/ModelsPage';
+import {HomePage} from '@/pages/HomePage';
+import {useHealth} from '@/hooks/useHealth';
+import {useOllamaStatus} from '@/hooks/useOllamaStatus';
+type Tab='workspace'|'benchmark'|'analytics'|'history'|'models'|'system';
+const nav=[{id:'workspace',label:'Workspace',Icon:SquareTerminal},{id:'benchmark',label:'Benchmark',Icon:GitCompare},{id:'analytics',label:'Analytics',Icon:BarChart3},{id:'history',label:'History',Icon:History},{id:'models',label:'Model Gateway',Icon:Cpu},{id:'system',label:'System Status',Icon:Activity}] as const;
+export const App:React.FC=()=>{
+ const [tab,setTab]=useState<Tab>('workspace');
+ const {health,error,refetch}=useHealth(true);
+ const {status,checkStatus}=useOllamaStatus(true);
+ const online=!error&&health?.status==='ok';
+ const ready=Boolean(status?.connected&&status?.model_installed);
+ const navigate=(t:Tab)=>{setTab(t);if(t==='models'||t==='system'){void refetch();void checkStatus();}};
+ return <div className="studio-shell"><aside className="studio-sidebar">
+ <div className="studio-brand"><div className="studio-mark"><Shield size={23}/></div><div><strong>Argus</strong><small>STUDIO 2.0</small></div></div>
+ <p className="studio-nav-label">WORKSPACE</p><nav aria-label="Main navigation" className="studio-nav">{nav.map(({id,label,Icon})=><button key={id} aria-current={tab===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
+ <div className="studio-sidebar-bottom"><Cpu size={16}/><div><strong>Inference: {ready?'Ready':status?'Offline':'Checking'}</strong><small>{ready?status?.model:'Ollama runtime'}</small></div></div><p className="studio-tagline">Understand. Optimize. Execute.</p></aside>
+ <div className="studio-main"><header className="studio-topbar"><span>Studio / {nav.find(n=>n.id===tab)?.label}</span><span className="studio-health" role="status"><i data-online={online}/>API {online?'Online':error?'Offline':'Checking'}</span></header>
+ <main id="main-content"><div hidden={tab==='models'||tab==='system'}><WorkspacePage ollamaStatus={status} view={tab==='models'||tab==='system'?'workspace':tab} onOpenOptimizer={()=>navigate('workspace')}/></div>{tab==='models'&&<ModelsPage/>}{tab==='system'&&<HomePage onRefreshStatus={()=>{void refetch();void checkStatus();}}/>}</main></div></div>;
 };
-
 export default App;

@@ -25,6 +25,7 @@ export interface OptimizationControlsProps {
   onTrialsChange?: (trials: number) => void;
   onCompare?: () => void;
   isComparing?: boolean;
+  benchmarkFirst?: boolean;
 }
 
 export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
@@ -47,6 +48,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
   onTrialsChange,
   onCompare,
   isComparing = false,
+  benchmarkFirst = false,
 }) => {
   const isOllamaReady = Boolean(ollamaStatus?.connected && ollamaStatus?.model_installed);
 
@@ -83,8 +85,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
               Local LLM Active ({ollamaStatus?.model || 'qwen2.5:1.5b'})
             </span>
             <p className="text-[11px] text-cyan-200/80 leading-relaxed">
-              Connected to local Ollama runtime. Real-time prompt optimization runs entirely on your
-              machine with zero prompt data sent to the cloud.
+              Connected to local Ollama runtime. Real-time prompt optimization runs on the configured Ollama server.
             </p>
           </div>
         </div>
@@ -101,6 +102,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
         </div>
       )}
 
+      <fieldset disabled={isLoading || isComparing} className="min-w-0"><details className="studio-advanced"><summary><Sliders size={16}/>Advanced settings</summary>
       {/* Phase 5: Local Optimizer Model Routing Bar */}
       <div className="p-3.5 rounded-lg bg-[#080d19] border border-cyan-500/20 space-y-3">
         <div className="flex items-center justify-between">
@@ -285,13 +287,14 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
             </div>
           </div>
 
+          </div></div></details></fieldset>
           {/* Action Triggers: Compare Outputs and Optimize Prompt */}
-          <div className="pt-2 space-y-2">
+          <div className="studio-actions">
             {onCompare && (
               <Button
                 variant="primary"
                 size="lg"
-                className="w-full font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-navy-950"
+                className={benchmarkFirst?'studio-primary font-semibold':'font-semibold'}
                 onClick={onCompare}
                 disabled={disabled || isLoading || isComparing}
                 isLoading={isComparing}
@@ -302,9 +305,9 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
             )}
 
             <Button
-              variant="outline"
-              size="md"
-              className="w-full font-medium text-xs text-slate-300 hover:text-white border-white/10"
+              variant={benchmarkFirst?'outline':'primary'}
+              size="lg"
+              className={benchmarkFirst?'font-semibold':'studio-primary font-semibold'}
               onClick={onOptimize}
               disabled={disabled || isLoading || isComparing}
               isLoading={isLoading}
@@ -320,8 +323,6 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
               </p>
             )}
           </div>
-        </div>
-      </div>
     </Card>
   );
 };

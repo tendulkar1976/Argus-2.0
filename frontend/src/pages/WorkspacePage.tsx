@@ -4,6 +4,7 @@ import { OptimizationControls } from '@/components/OptimizationControls';
 import { ComparisonView } from '@/components/ComparisonView';
 import { OutputComparisonView } from '@/components/OutputComparisonView';
 import { MetricsPanel } from '@/components/MetricsPanel';
+import { SessionInsights, type SessionRun } from '@/components/SessionInsights';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { apiService } from '@/services/api';
@@ -30,9 +31,14 @@ import {
 
 export interface WorkspacePageProps {
   ollamaStatus?: OllamaStatus | null;
+  view?: 'workspace' | 'benchmark' | 'analytics' | 'history';
+  onOpenOptimizer?: () => void;
 }
 
-export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) => {
+export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus, view = 'workspace', onOpenOptimizer = () => {} }) => {
+  const [runs,setRuns] = useState<SessionRun[]>([]);
+  const nextRunId = React.useRef(0);
+  const recordRun = (res: OptimizationResult,kind:SessionRun['kind']) => { const run = {id:++nextRunId.current,kind,timestamp:res.timestamp,model:res.model,original:res.originalMetrics.estimatedTokens,optimized:res.optimizedMetrics.estimatedTokens,latency:res.executionTimeMs,validation:res.validationStatus};setRuns(old=>[...old,run]); };
   const [rawPrompt, setRawPrompt] = useState<string>('');
   const [mode, setMode] = useState<OptimizationMode>('balanced');
   const [targetModel, setTargetModel] = useState<TargetModel>('gemini-1-5-flash');
@@ -70,12 +76,17 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
     };
   }, []);
 
+  const busy = status === 'optimizing' || status === 'comparing';
+  const invalidate = () => {setResult(null);setComparisonResult(null);setStatus('idle');setErrorMessage(null);};
   const handleSelectExample = (example: ExamplePrompt) => {
+    if(busy)return;
+    invalidate();
     setRawPrompt(example.content);
     setErrorMessage(null);
   };
 
   const handleClear = () => {
+    if(busy)return;
     setRawPrompt('');
     setResult(null);
     setComparisonResult(null);
@@ -84,6 +95,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
   };
 
   const handleOptimize = async () => {
+    if(busy)return;
     const trimmed = rawPrompt.trim();
     if (!trimmed) {
       setErrorMessage('Please enter or select a prompt before optimizing.');
@@ -104,6 +116,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
         requested_model: enableRouting ? undefined : (requestedModel || undefined),
       });
 
+      recordRun(optimizationResult,'Optimization');
       setResult(optimizationResult);
       setComparisonResult(null);
       setResultTab('prompt');
@@ -119,6 +132,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
   };
 
   const handleCompare = async () => {
+    if(busy)return;
     const trimmed = rawPrompt.trim();
     if (!trimmed) {
       setErrorMessage('Please enter or select a prompt before running output comparison.');
@@ -130,7 +144,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
     setStatus('comparing');
 
     try {
-      const targetDownstream = downstreamModel || requestedModel || ollamaStatus?.model || 'qwen2.5:1.5b';
+      const targetDownstream = downstreamModel || requestedModel || discoveredModels[0]?.name || (ollamaStatus?.connected ? ollamaStatus.model : undefined);
+      if(!targetDownstream) throw new Error('No downstream model discovered. Connect Ollama first.');
       const cmpRes = await apiService.compareOutputs({
         prompt: trimmed,
         downstream_model: targetDownstream,
@@ -141,6 +156,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
         trials,
       });
 
+      recordRun(cmpRes.optimizerDetails,'Benchmark');
       setComparisonResult(cmpRes);
       setResult(cmpRes.optimizerDetails);
       setResultTab('comparison');
@@ -164,25 +180,26 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
     }
   };
 
+  if(view === 'analytics' || view === 'history') return <SessionInsights view={view} runs={runs} onOpen={onOpenOptimizer} onClear={()=>setRuns([])}/>;
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="studio-workspace max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Workspace Header / Banner */}
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-950/60 text-cyan-300 border border-cyan-500/30">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Argus Prompt Optimization Workspace</span>
+              <span>{view === 'benchmark' ? 'PAIRED EVALUATION' : 'PROMPT ENGINEERING'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-2">
-              Optimize Input Tokens & Preserve Constraints
+              {view === 'benchmark' ? 'Benchmark model responses' : 'Optimize your prompt'}
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-slate-400 bg-[#0c1424] px-3 py-1.5 rounded-lg border border-white/5 flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Local Engine: {ollamaStatus?.model || 'qwen2.5:1.5b'}</span>
+              <span>Local Engine: {ollamaStatus?.model || 'Not discovered'}</span>
             </span>
           </div>
         </div>
@@ -217,43 +234,45 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
       )}
 
       {/* Primary Workspace Grid: Input & Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 gap-3 items-start">
         {/* Left: Raw Prompt Editor */}
-        <div className="lg:col-span-7 h-full">
+        <div className="min-w-0">
           <PromptEditor
             value={rawPrompt}
             onChange={(val) => {
+              invalidate();
               setRawPrompt(val);
               if (errorMessage) setErrorMessage(null);
             }}
             onClear={handleClear}
             onSelectExample={handleSelectExample}
-            disabled={status === 'optimizing'}
+            disabled={busy}
           />
         </div>
 
         {/* Right: Optimization Controls */}
-        <div className="lg:col-span-5 h-full">
+        <div className="min-w-0">
           <OptimizationControls
             mode={mode}
-            onModeChange={setMode}
+            onModeChange={(v)=>{invalidate();setMode(v);}}
             targetModel={targetModel}
-            onTargetModelChange={setTargetModel}
+            onTargetModelChange={(v)=>{invalidate();setTargetModel(v);}}
             onOptimize={handleOptimize}
             isLoading={status === 'optimizing'}
             disabled={rawPrompt.trim().length === 0}
             ollamaStatus={ollamaStatus}
             enableRouting={enableRouting}
-            onEnableRoutingChange={setEnableRouting}
+            onEnableRoutingChange={(v)=>{invalidate();setEnableRouting(v);}}
             requestedModel={requestedModel}
-            onRequestedModelChange={setRequestedModel}
+            onRequestedModelChange={(v)=>{invalidate();setRequestedModel(v);}}
             discoveredModels={discoveredModels}
             downstreamModel={downstreamModel}
-            onDownstreamModelChange={setDownstreamModel}
+            onDownstreamModelChange={(v)=>{invalidate();setDownstreamModel(v);}}
             trials={trials}
-            onTrialsChange={setTrials}
+            onTrialsChange={(v)=>{invalidate();setTrials(v);}}
             onCompare={handleCompare}
             isComparing={status === 'comparing'}
+            benchmarkFirst={view === 'benchmark'}
           />
         </div>
       </div>
@@ -270,7 +289,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus }) =>
                 Optimizing Prompt with {mode.toUpperCase()} Profile...
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Local model <code className="text-cyan-300 font-mono">{ollamaStatus?.model || 'qwen2.5:1.5b'}</code> is
+                Local model <code className="text-cyan-300 font-mono">{ollamaStatus?.model || 'Not discovered'}</code> is
                 extracting constraints and pruning tokens.
               </p>
             </div>
