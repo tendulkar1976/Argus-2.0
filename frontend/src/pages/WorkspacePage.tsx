@@ -173,9 +173,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus, view
 
   const handleOptimizedPromptChange = (updated: string) => {
     if (result) {
+      setComparisonResult(null);
       setResult({
         ...result,
         optimizedPrompt: updated,
+        validationStatus: 'fallback',
       });
     }
   };
@@ -315,7 +317,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({ ollamaStatus, view
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Executing Execution A (Original Prompt) and Execution B (Optimized Prompt) against local model{' '}
-                <code className="text-cyan-300 font-mono">{downstreamModel || requestedModel || 'qwen2.5:1.5b'}</code>.
+                <code className="text-cyan-300 font-mono">{downstreamModel || requestedModel || ollamaStatus?.model || 'Not discovered'}</code>.
               </p>
             </div>
             <div className="flex items-center justify-center gap-4 text-[11px] font-mono text-cyan-300">

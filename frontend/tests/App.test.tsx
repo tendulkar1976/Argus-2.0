@@ -25,7 +25,7 @@ describe('Argus Application Navigation & Smoke Test', () => {
 
   it('renders Argus brand header with tagline and Optimizer badge', async () => {
     render(<App />);
-    expect(await screen.findByText('Optimizer')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name:'Workspace'})).toBeInTheDocument();
     expect(screen.getAllByText('Argus').length).toBeGreaterThanOrEqual(1);
     expect(
       screen.getAllByText(/Understand\. Optimize\. Execute\./i).length
@@ -34,7 +34,7 @@ describe('Argus Application Navigation & Smoke Test', () => {
 
   it('renders status indicators for local LLM and backend API', async () => {
     render(<App />);
-    expect((await screen.findAllByText(/Local LLM:/i)).length).toBeGreaterThanOrEqual(1);
+    expect((await screen.findAllByText(/Inference:/i)).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/API/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -42,7 +42,7 @@ describe('Argus Application Navigation & Smoke Test', () => {
     render(<App />);
     // Defaults to Workspace tab
     expect(
-      await screen.findByText('Optimize Input Tokens & Preserve Constraints')
+      await screen.findByText('Optimize your prompt')
     ).toBeInTheDocument();
 
     // Click System Status tab
@@ -61,7 +61,7 @@ describe('Argus Application Navigation & Smoke Test', () => {
     const workspaceTabBtn = screen.getByRole('button', { name: /workspace/i });
     fireEvent.click(workspaceTabBtn);
     expect(
-      await screen.findByText('Optimize Input Tokens & Preserve Constraints')
+      await screen.findByText('Optimize your prompt')
     ).toBeInTheDocument();
   });
 });

@@ -82,7 +82,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
           <div className="space-y-0.5">
             <span className="font-semibold text-cyan-300">
-              Local LLM Active ({ollamaStatus?.model || 'qwen2.5:1.5b'})
+              Local LLM Active ({ollamaStatus?.model || ''})
             </span>
             <p className="text-[11px] text-cyan-200/80 leading-relaxed">
               Connected to local Ollama runtime. Real-time prompt optimization runs on the configured Ollama server.
@@ -134,7 +134,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
               <span>Installed: {discoveredModels.length || ollamaStatus?.available_models.length || 0}</span>
             </div>
             <select
-              value={requestedModel || (ollamaStatus?.model || 'qwen2.5:1.5b')}
+              value={requestedModel || (ollamaStatus?.model || '')}
               onChange={(e) => onRequestedModelChange && onRequestedModelChange(e.target.value)}
               className="w-full p-2 rounded-lg bg-[#0c1424] border border-white/10 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-500/50"
             >
@@ -145,7 +145,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                   </option>
                 ))
               ) : (
-                (ollamaStatus?.available_models || ['qwen2.5:1.5b']).map((name) => (
+                (ollamaStatus?.available_models || []).map((name) => (
                   <option key={name} value={name}>
                     {name}
                   </option>
@@ -234,7 +234,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
 
               <select
                 id="downstream-model-select"
-                value={downstreamModel || (ollamaStatus?.model || 'qwen2.5:1.5b')}
+                value={downstreamModel || (ollamaStatus?.model || '')}
                 onChange={(e) => onDownstreamModelChange && onDownstreamModelChange(e.target.value)}
                 className="w-full p-2 rounded-lg bg-[#080d19] border border-cyan-500/30 text-cyan-100 text-xs font-mono focus:outline-none focus:border-cyan-400"
               >
@@ -245,7 +245,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
                     </option>
                   ))
                 ) : (
-                  (ollamaStatus?.available_models || ['qwen2.5:1.5b']).map((name) => (
+                  (ollamaStatus?.available_models || []).map((name) => (
                     <option key={name} value={name}>
                       {name}
                     </option>
@@ -292,7 +292,7 @@ export const OptimizationControls: React.FC<OptimizationControlsProps> = ({
           <div className="studio-actions">
             {onCompare && (
               <Button
-                variant="primary"
+                variant={benchmarkFirst?'primary':'outline'}
                 size="lg"
                 className={benchmarkFirst?'studio-primary font-semibold':'font-semibold'}
                 onClick={onCompare}
